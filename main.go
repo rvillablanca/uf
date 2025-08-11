@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -18,15 +19,19 @@ func main() {
 
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Invalid status code: %d", resp.StatusCode)
-		return
+		exitWith("HTTP error: Invalid status code")
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	exitOnErr(err)
 
 	doc.Find("div#mes_all tbody tr").Eq(now.Day() - 1).Find("td").Eq(int(now.Month()) - 1).Each(func(i int, s *goquery.Selection) {
-		fmt.Println(s.Text())
+		val := strings.TrimSpace(s.Text())
+		if val == "" {
+			exitWith("No data found")
+		}
+
+		fmt.Println(val)
 	})
 }
 
@@ -35,4 +40,9 @@ func exitOnErr(err error) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func exitWith(err string) {
+	fmt.Fprintln(os.Stderr, err)
+	os.Exit(1)
 }
